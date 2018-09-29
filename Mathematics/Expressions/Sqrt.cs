@@ -4,7 +4,7 @@ namespace Mathematics.Expressions
 {
     public class Sqrt : OneArgFunction
     {
-        public Sqrt(Expression arg) : base("sqrt", arg)
+        internal Sqrt(Expression arg) : base("sqrt", arg)
         {
         }
 

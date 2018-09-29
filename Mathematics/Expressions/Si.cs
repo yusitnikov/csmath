@@ -2,7 +2,7 @@ namespace Mathematics.Expressions
 {
     public class Si : OneArgFunction
     {
-        public Si(Expression arg) : base("si", arg)
+        internal Si(Expression arg) : base("si", arg)
         {
         }
 
@@ -13,7 +13,7 @@ namespace Mathematics.Expressions
 
         protected override Expression _derivate()
         {
-            return new Sin(Arg) / Arg;
+            return Sin(Arg) / Arg;
         }
     }
 }

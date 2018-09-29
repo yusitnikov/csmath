@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Linq;
-using System.Collections.Generic;
 
 namespace Mathematics.Expressions
 {
     public class Hypot : ManyArgsExpression
     {
-        public Hypot(params Expression[] args) : base(args)
+        internal Hypot(params Expression[] args) : base(args)
         {
         }
 
@@ -15,57 +13,34 @@ namespace Mathematics.Expressions
             get { return Priority.Function; }
         }
 
-        protected override double evaluationInitValue => 0;
-
-        protected override double evaluationStep(double prevValue, double value)
+        protected override double evaluate(int cacheGeneration)
         {
-            return prevValue + value * value;
-        }
-
-        protected override double evaluate()
-        {
-            return Math.Sqrt(base.evaluate());
+            double result = 0;
+            foreach (var arg in Args)
+            {
+                var value = arg.Evaluate(cacheGeneration);
+                result += value * value;
+            }
+            return Math.Sqrt(result);
         }
 
         protected override string separator => ", ";
 
-        public override string ToString()
+        protected override string toString(int depth)
         {
-            return "hypot(" + base.ToString() + ")";
+            return "hypot(" + base.toString(depth) + ")";
         }
 
         protected override Expression derivate(Variable variable)
         {
             // (sqrt(x^2 + y^2 + ...))' = (x*x' + y*y' + ...) / sqrt(x^2 + y^2 + ...)
-            return new Add(Args.Select(arg => arg * arg.Derivate(variable)).ToArray()) / this;
-        }
-
-        public override Expression Simplify()
-        {
-            double constPart = 0;
-            var varParts = new List<Expression>();
-            foreach (var arg in Args)
+            var derivatives = new Expression[Args.Length];
+            for (var i = 0; i < Args.Length; i++)
             {
-                if (arg is Constant c)
-                {
-                    var val = c.Value;
-                    constPart += val * val;
-                }
-                else
-                {
-                    varParts.Add(arg);
-                }
+                var arg = Args[i];
+                derivatives[i] = arg * arg.Derivate(variable);
             }
-            constPart = Math.Sqrt(constPart);
-            if (varParts.Count == 0)
-            {
-                return new Constant(constPart);
-            }
-            if (constPart != 0)
-            {
-                varParts.Add(new Constant(constPart));
-            }
-            return new Hypot(varParts.ToArray());
+            return Sum(derivatives) / this;
         }
     }
 }

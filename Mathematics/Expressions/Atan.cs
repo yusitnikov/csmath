@@ -4,7 +4,7 @@ namespace Mathematics.Expressions
 {
     public class Atan : OneArgFunction
     {
-        public Atan(Expression arg) : base("atan", arg)
+        internal Atan(Expression arg) : base("atan", arg)
         {
         }
 

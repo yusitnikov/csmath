@@ -6,7 +6,7 @@ namespace Mathematics.Expressions
     {
         internal override Priority Priority => Priority.Function;
 
-        public Exp(Expression arg) : base(arg)
+        internal Exp(Expression arg) : base(arg)
         {
         }
 
@@ -15,9 +15,9 @@ namespace Mathematics.Expressions
             return Math.Exp(value);
         }
 
-        public override string ToString()
+        protected override string toString(int depth)
         {
-            return "e ^ " + Arg.ToString(Priority);
+            return "e ^ " + Arg.ToString(depth, Priority);
         }
 
         protected override Expression _derivate()
@@ -25,11 +25,11 @@ namespace Mathematics.Expressions
             return this;
         }
 
-        public override Expression Simplify()
+        internal override Expression Simplify()
         {
-            if (Arg is Log)
+            if (Arg is Log log)
             {
-                return (Arg as Log).Arg.Simplify();
+                return log.Arg;
             }
             return base.Simplify();
         }

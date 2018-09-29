@@ -4,7 +4,7 @@ namespace Mathematics.Expressions
 {
     public class Atan2 : TwoArgsFunction
     {
-        public Atan2(Expression y, Expression x) : base("atan2", y, x)
+        internal Atan2(Expression y, Expression x) : base("atan2", y, x)
         {
         }
 
@@ -16,11 +16,6 @@ namespace Mathematics.Expressions
         protected override Expression derivate(Variable variable)
         {
             return (Arg2 * Arg1.Derivate(variable) - Arg1 * Arg2.Derivate(variable)) / (Arg1.Square() + Arg2.Square());
-        }
-
-        public override Expression Simplify()
-        {
-            return this;
         }
     }
 }

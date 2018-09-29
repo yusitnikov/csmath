@@ -2,7 +2,7 @@ namespace Mathematics.Expressions
 {
     public class Ci : OneArgFunction
     {
-        public Ci(Expression arg) : base("Ci", arg)
+        internal Ci(Expression arg) : base("Ci", arg)
         {
         }
 
@@ -13,7 +13,7 @@ namespace Mathematics.Expressions
 
         protected override Expression _derivate()
         {
-            return new Cos(Arg) / Arg;
+            return Cos(Arg) / Arg;
         }
     }
 }

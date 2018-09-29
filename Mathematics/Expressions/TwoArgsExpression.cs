@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 
 namespace Mathematics.Expressions
@@ -20,30 +19,25 @@ namespace Mathematics.Expressions
 
         public TwoArgsExpression(Expression arg1, Expression arg2)
         {
-            Arg1 = arg1.Simplify();
-            Arg2 = arg2.Simplify();
+            Arg1 = arg1;
+            Arg2 = arg2;
         }
 
         protected abstract double _evaluate(double arg1, double arg2);
 
-        protected override double evaluate()
+        protected override double evaluate(int cacheGeneration)
         {
-            return _evaluate(Arg1.Evaluate(), Arg2.Evaluate());
-        }
-
-        protected virtual Expression newInstanceWithOtherArgs(Expression arg1, Expression arg2)
-        {
-            return (GetType().GetConstructor(new Type[] { typeof(Expression), typeof(Expression) }).Invoke(new object[] { arg1, arg2 }) as Expression);
+            return _evaluate(Arg1.Evaluate(cacheGeneration), Arg2.Evaluate(cacheGeneration));
         }
 
         public override Expression EvaluateVars(params Variable[] excludeVariables)
         {
-            return newInstanceWithOtherArgs(Arg1.EvaluateVars(excludeVariables).Simplify(), Arg2.EvaluateVars(excludeVariables).Simplify()).Simplify();
+            return newInstanceWithOtherArgs(Arg1.EvaluateVars(excludeVariables), Arg2.EvaluateVars(excludeVariables));
         }
 
-        public override Expression SubstituteVariables(params KeyValuePair<Variable, Expression>[] substitutions)
+        protected override Expression substituteVariables(Dictionary<int, Expression> cache, params KeyValuePair<Variable, Expression>[] substitutions)
         {
-            return newInstanceWithOtherArgs(Arg1.SubstituteVariables(substitutions), Arg2.SubstituteVariables(substitutions));
+            return newInstanceWithOtherArgs(Arg1.SubstituteVariables(cache, substitutions), Arg2.SubstituteVariables(cache, substitutions));
         }
     }
 }

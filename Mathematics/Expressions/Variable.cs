@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 
 namespace Mathematics.Expressions
@@ -36,17 +35,17 @@ namespace Mathematics.Expressions
             get { return Priority.Single; }
         }
 
-        protected override double evaluate()
+        protected override double evaluate(int cacheGeneration)
         {
             return value;
         }
 
-        public override double Evaluate()
+        public override double Evaluate(int cacheGeneration = 0)
         {
             return value;
         }
 
-        public override string ToString()
+        protected override string toString(int depth)
         {
             return Name;
         }
@@ -61,11 +60,6 @@ namespace Mathematics.Expressions
             return variable == this ? Constant.One : Constant.Nil;
         }
 
-        public override Expression Simplify()
-        {
-            return this;
-        }
-
         public override Expression EvaluateVars(params Variable[] excludeVariables)
         {
             foreach (var excludeVariable in excludeVariables)
@@ -75,10 +69,10 @@ namespace Mathematics.Expressions
                     return this;
                 }
             }
-            return new Constant(Evaluate());
+            return value;
         }
 
-        public override Expression SubstituteVariables(params KeyValuePair<Variable, Expression>[] substitutions)
+        protected override Expression substituteVariables(Dictionary<int, Expression> cache, params KeyValuePair<Variable, Expression>[] substitutions)
         {
             foreach (var substitution in substitutions)
             {
@@ -87,6 +81,11 @@ namespace Mathematics.Expressions
                     return substitution.Value;
                 }
             }
+            return this;
+        }
+
+        internal override Expression Simplify()
+        {
             return this;
         }
     }

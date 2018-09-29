@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 
 namespace Mathematics.Expressions
@@ -25,46 +24,45 @@ namespace Mathematics.Expressions
             get { return Priority.Function; }
         }
 
-        public Coalesce(Expression conditionValue, Expression valueIfNil, Expression valueIfNotNil)
+        internal Coalesce(Expression conditionValue, Expression valueIfNil, Expression valueIfNotNil)
         {
             ConditionValue = conditionValue;
             ValueIfNil = valueIfNil;
             ValueIfNotNil = valueIfNotNil;
         }
 
-        protected override double evaluate()
+        protected override double evaluate(int cacheGeneration)
         {
-            return ConditionValue.Evaluate() == 0 ? ValueIfNil.Evaluate() : ValueIfNotNil.Evaluate();
+            return ConditionValue.Evaluate(cacheGeneration) == 0 ? ValueIfNil.Evaluate(cacheGeneration) : ValueIfNotNil.Evaluate(cacheGeneration);
         }
 
-        public override string ToString()
+        protected override string toString(int depth)
         {
-            return "coalesce(" + ConditionValue.ToString(Priority) + "; " + ValueIfNil.ToString(Priority) + "; " + ValueIfNotNil.ToString(Priority) + ")";
+            return "if(0 = " + ConditionValue.ToString(depth) + "; " + ValueIfNil.ToString(depth) + "; " + ValueIfNotNil.ToString(depth) + ")";
         }
 
         protected override Expression derivate(Variable variable)
         {
-            return new Coalesce(ConditionValue, ValueIfNil.Derivate(variable), ValueIfNotNil.Derivate(variable));
+            return Coalesce(ConditionValue, ValueIfNil.Derivate(variable), ValueIfNotNil.Derivate(variable));
         }
 
-        public override Expression Simplify()
+        internal override Expression Simplify()
         {
-            var simplifiedConditionValue = ConditionValue.Simplify();
-            if (simplifiedConditionValue is Constant)
+            if (ConditionValue is Constant c)
             {
-                return simplifiedConditionValue.Evaluate() == 0 ? ValueIfNil.Simplify() : ValueIfNotNil.Simplify();
+                return c.Value == 0 ? ValueIfNil : ValueIfNotNil;
             }
-            return new Coalesce(simplifiedConditionValue, ValueIfNil.Simplify(), ValueIfNotNil.Simplify());
+            return base.Simplify();
         }
 
         public override Expression EvaluateVars(params Variable[] excludeVariables)
         {
-            return new Coalesce(ConditionValue.EvaluateVars(excludeVariables), ValueIfNil.EvaluateVars(excludeVariables), ValueIfNotNil.EvaluateVars(excludeVariables)).Simplify();
+            return Coalesce(ConditionValue.EvaluateVars(excludeVariables), ValueIfNil.EvaluateVars(excludeVariables), ValueIfNotNil.EvaluateVars(excludeVariables));
         }
 
-        public override Expression SubstituteVariables(params KeyValuePair<Variable, Expression>[] substitutions)
+        protected override Expression substituteVariables(Dictionary<int, Expression> cache, params KeyValuePair<Variable, Expression>[] substitutions)
         {
-            return new Coalesce(ConditionValue.SubstituteVariables(substitutions), ValueIfNil.SubstituteVariables(substitutions), ValueIfNotNil.SubstituteVariables(substitutions)).Simplify();
+            return Coalesce(ConditionValue.SubstituteVariables(cache, substitutions), ValueIfNil.SubstituteVariables(cache, substitutions), ValueIfNotNil.SubstituteVariables(cache, substitutions));
         }
     }
 }

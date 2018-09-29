@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using System.Collections.Generic;
 
 namespace Mathematics.Expressions
@@ -16,49 +14,43 @@ namespace Mathematics.Expressions
 
         public ManyArgsExpression(params Expression[] args)
         {
-            Args = args.Select(arg => arg.Simplify()).ToArray();
-        }
-
-        protected abstract double evaluationInitValue { get; }
-
-        protected abstract double evaluationStep(double prevValue, double value);
-
-        protected override double evaluate()
-        {
-            double r = evaluationInitValue;
-            foreach (Expression arg in Args)
+            Args = new Expression[args.Length];
+            for (var i = 0; i < args.Length; i++)
             {
-                r = evaluationStep(r, arg.Evaluate());
+                Args[i] = args[i];
             }
-            return r;
         }
 
         protected abstract string separator { get; }
 
-        public override string ToString()
+        protected override string toString(int depth)
         {
-            string s = Args[0].ToString(Priority);
+            string s = Args[0].ToString(depth, Priority);
             for (int i = 1; i < Args.Length; i++)
             {
-                s += separator + Args[i].ToString(Priority);
+                s += separator + Args[i].ToString(depth, Priority);
             }
             return s;
         }
 
-        protected virtual Expression newInstanceWithModifiedArgs(Func<Expression, Expression> converter)
-        {
-            var args = Args.Select(converter).ToArray();
-            return GetType().GetConstructor(new Type[] { typeof(Expression[]) }).Invoke(new object[] { args }) as Expression;
-        }
-
         public override Expression EvaluateVars(params Variable[] excludeVariables)
         {
-            return newInstanceWithModifiedArgs(arg => arg.EvaluateVars(excludeVariables).Simplify()).Simplify();
+            var args = new Expression[Args.Length];
+            for (var i = 0; i < Args.Length; i++)
+            {
+                args[i] = Args[i].EvaluateVars(excludeVariables);
+            }
+            return newInstanceWithOtherArgs(new object[] { args });
         }
 
-        public override Expression SubstituteVariables(params KeyValuePair<Variable, Expression>[] substitutions)
+        protected override Expression substituteVariables(Dictionary<int, Expression> cache, params KeyValuePair<Variable, Expression>[] substitutions)
         {
-            return newInstanceWithModifiedArgs(arg => arg.SubstituteVariables(substitutions));
+            var args = new Expression[Args.Length];
+            for (var i = 0; i < Args.Length; i++)
+            {
+                args[i] = Args[i].SubstituteVariables(cache, substitutions);
+            }
+            return newInstanceWithOtherArgs(new object[] { args });
         }
     }
 }

@@ -1,6 +1,4 @@
-﻿using System.Linq;
-
-namespace Mathematics.Expressions
+﻿namespace Mathematics.Expressions
 {
     public struct ComplexExpression
     {
@@ -8,27 +6,64 @@ namespace Mathematics.Expressions
 
         public Expression Re, Im;
 
-        public Expression SquareLength => new Square(Re) + new Square(Im);
-        public Expression Length => new Hypot(Re, Im);
+        public Expression SquareLength => Re.Square() + Im.Square();
+        public Expression Length
+        {
+            get
+            {
+                var result = Expression.Hypot(Re, Im);
+                result.Alias = alias == null ? null : "Len(" + alias + ")";
+                return result;
+            }
+        }
 
-        public Expression Arg => new Atan2(Im, Re);
+        public Expression Arg
+        {
+            get
+            {
+                var result = Expression.Atan2(Im, Re);
+                result.Alias = alias == null ? null : "Arg(" + alias + ")";
+                return result;
+            }
+        }
 
-        public ComplexExpression Normal => this / Length;
+        public ComplexExpression Normal
+        {
+            get
+            {
+                var result = this / Length;
+                result.Alias = alias == null ? null : "Normal(" + alias + ")";
+                return result;
+            }
+        }
 
         public ComplexExpression Conjugate => new ComplexExpression(Re, -Im);
+
+        private string alias;
+        public string Alias
+        {
+            get => alias;
+            set
+            {
+                alias = value;
+                Re.Alias = "Re(" + value + ")";
+                Im.Alias = "Im(" + value + ")";
+            }
+        }
 
         public ComplexExpression(Expression re, Expression im)
         {
             Re = re;
             Im = im;
+            alias = null;
         }
-        public ComplexExpression(Complex z) : this(new Constant(z.Re), new Constant(z.Im)) { }
+        public ComplexExpression(Complex z) : this(z.Re, z.Im) { }
 
         public static ComplexExpression Coalesce(Expression conditionValue, ComplexExpression valueIfNil, ComplexExpression valueIfNotNil)
         {
             return new ComplexExpression(
-                new Coalesce(conditionValue, valueIfNil.Re, valueIfNotNil.Re),
-                new Coalesce(conditionValue, valueIfNil.Im, valueIfNotNil.Im)
+                Expression.Coalesce(conditionValue, valueIfNil.Re, valueIfNotNil.Re),
+                Expression.Coalesce(conditionValue, valueIfNil.Im, valueIfNotNil.Im)
             );
         }
 
@@ -37,20 +72,15 @@ namespace Mathematics.Expressions
             return new ComplexExpression(Re.Derivate(variable), Im.Derivate(variable));
         }
 
-        public ComplexExpression Simplify()
-        {
-            return new ComplexExpression(Re.Simplify(), Im.Simplify());
-        }
-
         public static ComplexExpression Exp(ComplexExpression z)
         {
-            return new Exp(z.Re) * new ComplexExpression(new Cos(z.Im), new Sin(z.Im));
+            return Expression.Exp(z.Re) * new ComplexExpression(Expression.Cos(z.Im), Expression.Sin(z.Im));
         }
 
         // int (e^ix / x) dx = (Ci(x); Si(x)) + c
         public static ComplexExpression ExpIntOfImaginaryArg(Expression x)
         {
-            return new ComplexExpression(new Ci(x), new Si(x));
+            return new ComplexExpression(Expression.Ci(x), Expression.Si(x));
         }
 
         // int from x1 to x2 (e^ix / x) dx

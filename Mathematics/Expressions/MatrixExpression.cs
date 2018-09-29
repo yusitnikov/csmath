@@ -1,7 +1,5 @@
 ﻿using Mathematics.Math3D;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Mathematics.Expressions
 {
@@ -47,14 +45,14 @@ namespace Mathematics.Expressions
             {
                 for (int y = 0; y < Height; y++)
                 {
-                    Elements[y, x] = new Constant(elements[y, x]);
+                    Elements[y, x] = elements[y, x];
                 }
             }
         }
 
         public static MatrixExpression GetRotateXToYMatrix(Expression angle)
         {
-            Expression cos = new Cos(angle), sin = new Sin(angle), c0 = Constant.Nil, c1 = Constant.One;
+            Expression cos = Expression.Cos(angle), sin = Expression.Sin(angle), c0 = Constant.Nil, c1 = Constant.One;
             return new MatrixExpression(
                 cos, -sin, c0,
                 sin, cos, c0,
@@ -64,7 +62,7 @@ namespace Mathematics.Expressions
 
         public static MatrixExpression GetRotateYToXMatrix(Expression angle)
         {
-            Expression cos = new Cos(angle), sin = new Sin(angle), c0 = Constant.Nil, c1 = Constant.One;
+            Expression cos = Expression.Cos(angle), sin = Expression.Sin(angle), c0 = Constant.Nil, c1 = Constant.One;
             return new MatrixExpression(
                 cos, sin, c0,
                 -sin, cos, c0,
@@ -74,7 +72,7 @@ namespace Mathematics.Expressions
 
         public static MatrixExpression GetRotateYToZMatrix(Expression angle)
         {
-            Expression cos = new Cos(angle), sin = new Sin(angle), c0 = Constant.Nil, c1 = Constant.One;
+            Expression cos = Expression.Cos(angle), sin = Expression.Sin(angle), c0 = Constant.Nil, c1 = Constant.One;
             return new MatrixExpression(
                 c1, c0, c0,
                 c0, cos, -sin,
@@ -84,7 +82,7 @@ namespace Mathematics.Expressions
 
         public static MatrixExpression GetRotateZToYMatrix(Expression angle)
         {
-            Expression cos = new Cos(angle), sin = new Sin(angle), c0 = Constant.Nil, c1 = Constant.One;
+            Expression cos = Expression.Cos(angle), sin = Expression.Sin(angle), c0 = Constant.Nil, c1 = Constant.One;
             return new MatrixExpression(
                 c1, c0, c0,
                 c0, cos, sin,
@@ -94,7 +92,7 @@ namespace Mathematics.Expressions
 
         public static MatrixExpression GetRotateXToZMatrix(Expression angle)
         {
-            Expression cos = new Cos(angle), sin = new Sin(angle), c0 = Constant.Nil, c1 = Constant.One;
+            Expression cos = Expression.Cos(angle), sin = Expression.Sin(angle), c0 = Constant.Nil, c1 = Constant.One;
             return new MatrixExpression(
                 cos, c0, -sin,
                 c0, c1, c0,
@@ -104,7 +102,7 @@ namespace Mathematics.Expressions
 
         public static MatrixExpression GetRotateZToXMatrix(Expression angle)
         {
-            Expression cos = new Cos(angle), sin = new Sin(angle), c0 = Constant.Nil, c1 = Constant.One;
+            Expression cos = Expression.Cos(angle), sin = Expression.Sin(angle), c0 = Constant.Nil, c1 = Constant.One;
             return new MatrixExpression(
                 cos, c0, sin,
                 c0, c1, c0,
@@ -112,14 +110,18 @@ namespace Mathematics.Expressions
             );
         }
 
-        public Matrix Evaluate()
+        public Matrix Evaluate(int cacheGeneration = 0)
         {
+            if (cacheGeneration == 0)
+            {
+                cacheGeneration = Expression.NextAutoIncrementId;
+            }
             var values = new double[Height, Width];
             for (int x = 0; x < Width; x++)
             {
                 for (int y = 0; y < Height; y++)
                 {
-                    values[y, x] = Elements[y, x].Evaluate();
+                    values[y, x] = Elements[y, x].Evaluate(cacheGeneration);
                 }
             }
             return new Matrix(values);
@@ -142,7 +144,7 @@ namespace Mathematics.Expressions
                     {
                         args[k] = m1[y, k] * m2[k, x];
                     }
-                    r[y, x] = new Add(args).Simplify();
+                    r[y, x] = Expression.Sum(args);
                 }
             }
             return r;

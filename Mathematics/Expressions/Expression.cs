@@ -1,5 +1,6 @@
+using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Reflection;
 
 namespace Mathematics.Expressions
 {
@@ -8,120 +9,154 @@ namespace Mathematics.Expressions
         private static object lockObject = new object();
 
         private static int autoIncrementId = 0;
+        public static int NextAutoIncrementId
+        {
+            get
+            {
+                int result;
+                lock (lockObject)
+                {
+                    result = ++autoIncrementId;
+                }
+                return result;
+            }
+        }
 
-        private static int currentCacheGeneration = 0;
         private int cacheEvalGeneration = 0;
         private double cachedEval = 0;
-        private int cacheDerivateGeneration = 0;
-        private Expression cachedDerivate = null;
-        private Square squareCache = null;
-        private Invert invertCache = null;
+        private Dictionary<int, Expression> derivativeCache = new Dictionary<int, Expression>();
+
+        public readonly int Id = NextAutoIncrementId;
+
+        public string Alias { get; set; }
 
         protected abstract Expression[] arguments { get; set; }
 
         internal abstract Priority Priority { get; }
 
-        public int PlainComplexity => 1 + arguments.Select(arg => arg.PlainComplexity).Sum();
-
-        public int UniqueComplexity => getUniqueComplexity(new HashSet<string>());
-
-        private int getUniqueComplexity(HashSet<string> set)
+        public int PlainComplexity
         {
-            return set.Add(ToString()) ? 1 + arguments.Select(arg => arg.getUniqueComplexity(set)).Sum() : 0;
-        }
-
-        public void ReplaceSameSubExpressions()
-        {
-            replaceSameSubExpressions(new Dictionary<string, Expression>());
-        }
-
-        private void replaceSameSubExpressions(Dictionary<string, Expression> map)
-        {
-            arguments = arguments.Select(arg =>
+            get
             {
-                var key = arg.ToString();
-                if (map.TryGetValue(key, out Expression cachedArg))
+                var result = 1;
+                foreach (var arg in arguments)
                 {
-                    return cachedArg;
+                    result += arg.PlainComplexity;
                 }
-                else
-                {
-                    map[key] = arg;
-                    arg.replaceSameSubExpressions(map);
-                    return arg;
-                }
-            }).ToArray();
-        }
-
-        protected abstract double evaluate();
-
-        public virtual double Evaluate()
-        {
-            lock (lockObject)
-            {
-                if (currentCacheGeneration == 0)
-                {
-                    currentCacheGeneration = ++autoIncrementId;
-                    try
-                    {
-                        return evaluate();
-                    }
-                    finally
-                    {
-                        currentCacheGeneration = 0;
-                    }
-                }
-                else
-                {
-                    if (cacheEvalGeneration != currentCacheGeneration)
-                    {
-                        cachedEval = evaluate();
-                        cacheEvalGeneration = currentCacheGeneration;
-                    }
-                    return cachedEval;
-                }
+                return result;
             }
         }
 
-        public abstract override string ToString();
-
-        internal string ToString(Priority callerPriority)
+        public int UniqueComplexity => getUniqueComplexity(new HashSet<string>());
+        private int getUniqueComplexity(HashSet<string> set)
         {
-            string s = ToString();
-            if (callerPriority >= Priority)
+            if (set.Add(ToString(int.MaxValue)))
+            {
+                var result = 1;
+                foreach (var arg in arguments)
+                {
+                    result += arg.getUniqueComplexity(set);
+                }
+                return result;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+
+        protected virtual Expression newInstanceWithOtherArgs(params object[] args)
+        {
+            var ctor = GetType().GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic)[0];
+            return (ctor.Invoke(args) as Expression).Simplify();
+        }
+
+        protected abstract double evaluate(int cacheGeneration);
+
+        public virtual double Evaluate(int cacheGeneration = 0)
+        {
+            if (cacheGeneration == 0)
+            {
+                cacheGeneration = NextAutoIncrementId;
+            }
+
+            lock (lockObject)
+            {
+                if (cacheEvalGeneration != cacheGeneration)
+                {
+                    cachedEval = evaluate(cacheGeneration);
+                    cacheEvalGeneration = cacheGeneration;
+                }
+                return cachedEval;
+            }
+        }
+
+        protected abstract string toString(int depth);
+        public override string ToString()
+        {
+            return ToString(0);
+        }
+        internal string ToString(int depth)
+        {
+            if (depth == 0 && Alias != null)
+            {
+                return Alias;
+            }
+            else
+            {
+                if (Alias != null)
+                {
+                    --depth;
+                }
+                return toString(depth);
+            }
+        }
+        internal string ToString(int depth, Priority callerPriority)
+        {
+            string s = ToString(depth);
+            if ((depth != 0 || Alias == null) && callerPriority >= Priority)
             {
                 s = "(" + s + ")";
             }
             return s;
         }
 
-        public abstract Expression SubstituteVariables(params KeyValuePair<Variable, Expression>[] substitutions);
+        protected abstract Expression substituteVariables(Dictionary<int, Expression> cache, params KeyValuePair<Variable, Expression>[] substitutions);
+        public Expression SubstituteVariables(Dictionary<int, Expression> cache, params KeyValuePair<Variable, Expression>[] substitutions)
+        {
+            var cacheKey = Id;
+            if (cache.TryGetValue(cacheKey, out Expression value))
+            {
+                return value;
+            }
+            else
+            {
+                cache[cacheKey] = value = substituteVariables(cache, substitutions);
+                value.Alias = value.Alias ?? Alias;
+                return value;
+            }
+        }
+        public Expression SubstituteVariables(params KeyValuePair<Variable, Expression>[] substitutions)
+        {
+            return SubstituteVariables(new Dictionary<int, Expression>(), substitutions);
+        }
 
         public virtual Expression Derivate(Variable variable)
         {
-            lock (lockObject)
+            var cacheKey = variable.Id;
+
+            if (derivativeCache.TryGetValue(cacheKey, out Expression value))
             {
-                if (currentCacheGeneration == 0)
+                return value;
+            }
+            else
+            {
+                derivativeCache[cacheKey] = value = derivate(variable);
+                if (value.Alias == null && Alias != null)
                 {
-                    currentCacheGeneration = ++autoIncrementId;
-                    try
-                    {
-                        return derivate(variable);
-                    }
-                    finally
-                    {
-                        currentCacheGeneration = 0;
-                    }
+                    value.Alias = Alias + "'";
                 }
-                else
-                {
-                    if (cacheDerivateGeneration != currentCacheGeneration)
-                    {
-                        cachedDerivate = derivate(variable);
-                        cacheDerivateGeneration = currentCacheGeneration;
-                    }
-                    return cachedDerivate;
-                }
+                return value;
             }
         }
 
@@ -133,45 +168,162 @@ namespace Mathematics.Expressions
                 Derivate(p.X),
                 Derivate(p.Y),
                 Derivate(p.Z)
-            ).Simplify();
+            );
         }
 
-        public abstract Expression Simplify();
-
-        public Square Square()
+        internal virtual Expression Simplify()
         {
-            return squareCache ?? (squareCache = new Square(this));
+            var isConstantExpression = !(this is Variable);
+            foreach (var arg in arguments)
+            {
+                if (!(arg is Constant))
+                {
+                    isConstantExpression = false;
+                    break;
+                }
+            }
+            if (isConstantExpression)
+            {
+                return evaluate(-1);
+            }
+            else
+            {
+                return this;
+            }
         }
 
-        public static Invert operator -(Expression arg)
+        #region Functions
+
+        public static Expression Acos(Expression x)
         {
-            return arg.invertCache ?? (arg.invertCache = new Invert(arg));
+            return new Acos(x).Simplify();
         }
 
-        public static Add operator +(Expression arg1, Expression arg2)
+        public static Expression Atan(Expression x)
         {
-            return new Add(arg1, arg2);
+            return new Atan(x).Simplify();
         }
 
-        public static Subtract operator -(Expression arg1, Expression arg2)
+        public static Expression Atan2(Expression y, Expression x)
         {
-            return new Subtract(arg1, arg2);
+            return new Atan2(y, x).Simplify();
         }
 
-        public static Multiply operator *(Expression arg1, Expression arg2)
+        public static Expression BinarySearch(Expression expression, Variable variable, Expression min, Expression max, Expression precision, Func<double, int, bool> comparer = null)
         {
-            return new Multiply(arg1, arg2);
+            return new BinarySearchExpression(expression, variable, min, max, precision, comparer);
         }
 
-        public static Divide operator /(Expression arg1, Expression arg2)
+        public static Expression Ci(Expression x)
         {
-            return new Divide(arg1, arg2);
+            return new Ci(x).Simplify();
+        }
+
+        public static Expression Coalesce(Expression conditionValue, Expression valueIfNil, Expression valueIfNotNil)
+        {
+            return new Coalesce(conditionValue, valueIfNil, valueIfNotNil).Simplify();
+        }
+
+        public static Expression Cos(Expression x)
+        {
+            return new Cos(x).Simplify();
+        }
+
+        public static Expression Exp(Expression x)
+        {
+            return new Exp(x).Simplify();
+        }
+
+        public static Expression Hypot(params Expression[] args)
+        {
+            return new Hypot(args).Simplify();
+        }
+
+        public static Expression IfPositive(Expression conditionValue, Expression valueIfPositive, Expression valueIfNegative)
+        {
+            return new IfPositive(conditionValue, valueIfPositive, valueIfNegative).Simplify();
+        }
+
+        public static Expression Log(Expression x)
+        {
+            return new Log(x).Simplify();
+        }
+
+        public static Expression Max(Expression x, Expression y)
+        {
+            return new Max(x, y).Simplify();
+        }
+
+        public static Expression Min(Expression x, Expression y)
+        {
+            return new Min(x, y).Simplify();
+        }
+
+        public static Expression Si(Expression x)
+        {
+            return new Si(x).Simplify();
+        }
+
+        public static Expression Sin(Expression x)
+        {
+            return new Sin(x).Simplify();
+        }
+
+        public static Expression Sqrt(Expression x)
+        {
+            return new Sqrt(x).Simplify();
+        }
+
+        public static Expression Sum(params Expression[] args)
+        {
+            return new Add(args).Simplify();
+        }
+
+        public static Expression Product(params Expression[] args)
+        {
+            return new Multiply(args).Simplify();
+        }
+
+        public Expression Square()
+        {
+            return new Square(this).Simplify();
+        }
+
+        #endregion
+
+        #region Operators
+
+        public static Expression operator -(Expression arg)
+        {
+            return new Invert(arg).Simplify();
+        }
+
+        public static Expression operator +(Expression arg1, Expression arg2)
+        {
+            return new Add(arg1, arg2).Simplify();
+        }
+
+        public static Expression operator -(Expression arg1, Expression arg2)
+        {
+            return new Subtract(arg1, arg2).Simplify();
+        }
+
+        public static Expression operator *(Expression arg1, Expression arg2)
+        {
+            return new Multiply(arg1, arg2).Simplify();
+        }
+
+        public static Expression operator /(Expression arg1, Expression arg2)
+        {
+            return new Divide(arg1, arg2).Simplify();
         }
 
         public static implicit operator Expression(double value)
         {
             return new Constant(value);
         }
+
+        #endregion
 
         public abstract Expression EvaluateVars(params Variable[] excludeVariables);
     }

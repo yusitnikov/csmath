@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 
 namespace Mathematics.Expressions
@@ -15,7 +14,7 @@ namespace Mathematics.Expressions
 
         public readonly double Value;
 
-        public Constant(double value)
+        internal Constant(double value)
         {
             Value = value;
         }
@@ -25,34 +24,29 @@ namespace Mathematics.Expressions
             get { return Value >= 0 ? Priority.Single : Priority.Add; }
         }
 
-        protected override double evaluate()
+        protected override double evaluate(int cacheGeneration)
         {
             return Value;
         }
 
-        public override double Evaluate()
+        public override double Evaluate(int cacheGeneration = 0)
         {
             return Value;
         }
 
-        public override string ToString()
+        protected override string toString(int depth)
         {
             return Value.ToString();
         }
 
         protected override Expression derivate(Variable variable)
         {
-            return Constant.Nil;
+            return Nil;
         }
 
         public override Expression Derivate(Variable variable)
         {
-            return Constant.Nil;
-        }
-
-        public override Expression Simplify()
-        {
-            return this;
+            return Nil;
         }
 
         public override Expression EvaluateVars(params Variable[] excludeVariables)
@@ -60,7 +54,12 @@ namespace Mathematics.Expressions
             return this;
         }
 
-        public override Expression SubstituteVariables(params KeyValuePair<Variable, Expression>[] substitutions)
+        protected override Expression substituteVariables(Dictionary<int, Expression> cache, params KeyValuePair<Variable, Expression>[] substitutions)
+        {
+            return this;
+        }
+
+        internal override Expression Simplify()
         {
             return this;
         }

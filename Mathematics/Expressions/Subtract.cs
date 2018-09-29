@@ -2,7 +2,7 @@ namespace Mathematics.Expressions
 {
     public class Subtract : TwoArgsExpression
     {
-        public Subtract(Expression arg1, Expression arg2) : base(arg1, arg2)
+        internal Subtract(Expression arg1, Expression arg2) : base(arg1, arg2)
         {
         }
 
@@ -16,19 +16,14 @@ namespace Mathematics.Expressions
             return arg1 - arg2;
         }
 
-        public override string ToString()
+        protected override string toString(int depth)
         {
-            return Arg1.ToString(Priority) + " - " + Arg2.ToString(Priority);
+            return Arg1.ToString(depth, Priority) + " - " + Arg2.ToString(depth, Priority);
         }
 
         protected override Expression derivate(Variable variable)
         {
             return Arg1.Derivate(variable) - Arg2.Derivate(variable);
-        }
-
-        public override Expression Simplify()
-        {
-            return (Arg1 + (-Arg2)).Simplify();
         }
     }
 }

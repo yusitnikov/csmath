@@ -61,12 +61,63 @@ namespace Mathematics.Math3D
             };
         }
 
+        public ProjectionToNormal ProjectToHorizontalSurface()
+        {
+            return new ProjectionToNormal()
+            {
+                Vertical = new Point3D(0, Y, 0),
+                Horizontal = new Point3D(X, 0, Z)
+            };
+        }
+
         public Point3D RotateByAngle3D(Point3D angle3D)
         {
             var angleDirection = angle3D.Normal;
             var projection = ProjectToNormalVector(angleDirection);
             var angleLength = angle3D.Length;
             return projection.Vertical + projection.Horizontal * Math.Cos(angleLength) + VectorMult(this, angleDirection) * Math.Sin(angleLength);
+        }
+
+        public double GetLengthDerivative(Point3D thisDerivative)
+        {
+            return ScalarMult(Normal, thisDerivative);
+        }
+
+        public Point3D GetNormalDerivative(Point3D thisDerivative)
+        {
+            return thisDerivative / Length - this * (GetLengthDerivative(thisDerivative) / SquareLength);
+        }
+
+        public ProjectionToNormal GetProjectToNormalVectorDerivative(Point3D normal, Point3D thisDerivative, Point3D normalDerivative)
+        {
+            var verticalDerivative = (ScalarMult(this, normalDerivative) + ScalarMult(thisDerivative, normal)) * normal + ScalarMult(this, normal) * normalDerivative;
+            return new ProjectionToNormal()
+            {
+                Vertical = verticalDerivative,
+                Horizontal = thisDerivative - verticalDerivative
+            };
+        }
+
+        public Point3D GetRotateByAngle3DDerivative(Point3D angle3D, Point3D thisDerivative, Point3D angle3DDerivative)
+        {
+            var angleDirection = angle3D.Normal;
+            var angleDirectionDerivative = angle3D.GetNormalDerivative(angle3DDerivative);
+            var projection = ProjectToNormalVector(angleDirection);
+            var projectionDerivative = GetProjectToNormalVectorDerivative(angleDirection, thisDerivative, angleDirectionDerivative);
+            var angleLength = angle3D.Length;
+            var angleLengthDerivative = angle3D.GetLengthDerivative(angle3DDerivative);
+            return projectionDerivative.Vertical
+                + (projectionDerivative.Horizontal + VectorMult(this, angleDirection) * angleLengthDerivative) * Math.Cos(angleLength)
+                + (VectorMult(this, angleDirectionDerivative) + VectorMult(thisDerivative, angleDirection) - projection.Horizontal * angleLengthDerivative) * Math.Sin(angleLength);
+        }
+
+        public Point3D GetRotateYawDerivative(double angle, Point3D thisDerivative, double angleDerivative)
+        {
+            var projection = ProjectToHorizontalSurface();
+            var projectionDerivative = thisDerivative.ProjectToHorizontalSurface();
+            return projectionDerivative.Vertical
+                + (projectionDerivative.Horizontal + VectorMult(this, YAxis) * angleDerivative) * Math.Cos(angle)
+                + (VectorMult(thisDerivative, YAxis) - projection.Horizontal * angleDerivative) * Math.Sin(angle);
         }
 
         // Rotate around OZ: from OY to OX

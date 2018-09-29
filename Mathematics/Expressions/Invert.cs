@@ -2,7 +2,7 @@ namespace Mathematics.Expressions
 {
     public class Invert : OneArgExpression
     {
-        public Invert(Expression arg) : base(arg)
+        internal Invert(Expression arg) : base(arg)
         {
         }
 
@@ -16,9 +16,9 @@ namespace Mathematics.Expressions
             return -value;
         }
 
-        public override string ToString()
+        protected override string toString(int depth)
         {
-            return "-" + Arg.ToString(Priority);
+            return "-" + Arg.ToString(depth, Priority);
         }
 
         protected override Expression _derivate()

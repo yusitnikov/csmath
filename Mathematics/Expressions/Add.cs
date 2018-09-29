@@ -1,12 +1,8 @@
-using System;
-using System.Linq;
-using System.Collections.Generic;
-
 namespace Mathematics.Expressions
 {
     public class Add : ManyArgsExpression
     {
-        public Add(params Expression[] args) : base(args)
+        internal Add(params Expression[] args) : base(args)
         {
         }
 
@@ -15,57 +11,26 @@ namespace Mathematics.Expressions
             get { return Priority.Add; }
         }
 
-        protected override double evaluationInitValue => 0;
-
-        protected override double evaluationStep(double prevValue, double value)
+        protected override double evaluate(int cacheGeneration)
         {
-            return prevValue + value;
+            double result = 0;
+            foreach (var arg in Args)
+            {
+                result += arg.Evaluate(cacheGeneration);
+            }
+            return result;
         }
 
         protected override string separator => " + ";
 
         protected override Expression derivate(Variable variable)
         {
-            return new Add(Args.Select(arg => arg.Derivate(variable)).ToArray());
-        }
-
-        public override Expression Simplify()
-        {
-            double constPart = 0;
-            var varParts = new List<Expression>();
-            Action<Add> add = null;
-            add = sum =>
+            var derivatives = new Expression[Args.Length];
+            for (var i = 0; i < Args.Length; i++)
             {
-                foreach (var arg in sum.Args)
-                {
-                    if (arg is Constant c)
-                    {
-                        constPart += c.Value;
-                    }
-                    else if (arg is Add a)
-                    {
-                        add(a);
-                    }
-                    else
-                    {
-                        varParts.Add(arg);
-                    }
-                }
-            };
-            add(this);
-            if (varParts.Count == 0)
-            {
-                return new Constant(constPart);
+                derivatives[i] = Args[i].Derivate(variable);
             }
-            if (constPart != 0)
-            {
-                varParts.Add(new Constant(constPart));
-            }
-            if (varParts.Count == 1)
-            {
-                return varParts[0];
-            }
-            return new Add(varParts.ToArray());
+            return Sum(derivatives);
         }
     }
 }

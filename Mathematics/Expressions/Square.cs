@@ -1,12 +1,10 @@
-using System.Linq;
-
 namespace Mathematics.Expressions
 {
     public class Square : OneArgExpression
     {
         internal override Priority Priority => Priority.Function;
 
-        public Square(Expression arg) : base(arg)
+        internal Square(Expression arg) : base(arg)
         {
         }
 
@@ -15,9 +13,9 @@ namespace Mathematics.Expressions
             return val * val;
         }
 
-        public override string ToString()
+        protected override string toString(int depth)
         {
-            return Arg.ToString(Priority) + " ^ 2";
+            return Arg.ToString(depth, Priority) + " ^ 2";
         }
 
         protected override Expression _derivate()
@@ -25,11 +23,16 @@ namespace Mathematics.Expressions
             return Constant.Two * Arg;
         }
 
-        public override Expression Simplify()
+        internal override Expression Simplify()
         {
-            if (Arg is Hypot)
+            if (Arg is Hypot hypot)
             {
-                return new Add((Arg as Hypot).Args.Select(arg => arg.Square()).ToArray()).Simplify();
+                var args = new Expression[hypot.Args.Length];
+                for (var i = 0; i < hypot.Args.Length; i++)
+                {
+                    args[i] = hypot.Args[i].Square();
+                }
+                return Sum(args);
             }
             return base.Simplify();
         }

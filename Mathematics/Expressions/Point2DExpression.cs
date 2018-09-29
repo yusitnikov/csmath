@@ -14,13 +14,13 @@ namespace Mathematics.Expressions
 
         public Point2DExpression(Point2D point)
         {
-            X = new Constant(point.X);
-            Y = new Constant(point.Y);
+            X = point.X;
+            Y = point.Y;
         }
 
-        public Point2D Evaluate()
+        public Point2D Evaluate(int cacheGeneration = 0)
         {
-            return new Point2D(X.Evaluate(), Y.Evaluate());
+            return new Point2D(X.Evaluate(cacheGeneration), Y.Evaluate(cacheGeneration));
         }
     }
 }

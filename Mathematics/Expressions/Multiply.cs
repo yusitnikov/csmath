@@ -1,11 +1,8 @@
-using System;
-using System.Collections.Generic;
-
 namespace Mathematics.Expressions
 {
     public class Multiply : ManyArgsExpression
     {
-        public Multiply(params Expression[] args) : base(args)
+        internal Multiply(params Expression[] args) : base(args)
         {
         }
 
@@ -14,68 +11,52 @@ namespace Mathematics.Expressions
             get { return Priority.Multiply; }
         }
 
-        protected override double evaluationInitValue { get { return 1; } }
-
-        protected override double evaluationStep(double prevValue, double value)
+        protected override double evaluate(int cacheGeneration)
         {
-            return prevValue * value;
+            double result = 1;
+            foreach (var arg in Args)
+            {
+                result *= arg.Evaluate(cacheGeneration);
+                if (result == 0)
+                {
+                    break;
+                }
+            }
+            return result;
         }
 
         protected override string separator { get { return " * "; } }
 
         protected override Expression derivate(Variable variable)
         {
+            if (Args.Length == 2)
+            {
+                var arg1 = Args[0];
+                var arg2 = Args[1];
+                return arg2 * arg1.Derivate(variable) + arg1 * arg2.Derivate(variable);
+            }
+
             Expression[] parts = new Expression[Args.Length];
             for (int i = 0; i < Args.Length; i++)
             {
-                Expression[] args = Args.Clone() as Expression[];
-                args[i] = args[i].Derivate(variable);
-                parts[i] = new Multiply(args);
+                var arg = Args[i];
+                Args[i] = arg.Derivate(variable);
+                parts[i] = Product(Args);
+                Args[i] = arg;
             }
-            return new Add(parts);
+            return Sum(parts);
         }
 
-        public override Expression Simplify()
+        internal override Expression Simplify()
         {
-            double constPart = 1;
-            var varParts = new List<Expression>();
-            Action<Multiply> add = null;
-            add = mult =>
+            foreach (var arg in Args)
             {
-                foreach (var arg in mult.Args)
+                if (arg is Constant c && c.Value == 0)
                 {
-                    if (arg is Constant)
-                    {
-                        constPart *= arg.Evaluate();
-                    }
-                    else if (arg is Multiply)
-                    {
-                        add(arg as Multiply);
-                    }
-                    else
-                    {
-                        varParts.Add(arg);
-                    }
+                    return Constant.Nil;
                 }
-            };
-            add(this);
-            if (constPart == 0)
-            {
-                return Constant.Nil;
             }
-            if (varParts.Count == 0)
-            {
-                return new Constant(constPart);
-            }
-            if (constPart != 1)
-            {
-                varParts.Insert(0, new Constant(constPart));
-            }
-            if (varParts.Count == 1)
-            {
-                return varParts[0];
-            }
-            return new Multiply(varParts.ToArray());
+            return base.Simplify();
         }
     }
 }

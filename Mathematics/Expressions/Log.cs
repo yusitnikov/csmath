@@ -4,13 +4,13 @@ namespace Mathematics.Expressions
 {
     public class Log : OneArgFunction
     {
-        public Log(Expression arg) : base("log", arg)
+        internal Log(Expression arg) : base("log", arg)
         {
         }
 
         protected override double _evaluate(double value)
         {
-            return Math.Log(value);
+            return double.IsNaN(value) || value <= 0 ? double.NaN : Math.Log(value);
         }
 
         protected override Expression _derivate()
@@ -18,11 +18,11 @@ namespace Mathematics.Expressions
             return Constant.One / Arg;
         }
 
-        public override Expression Simplify()
+        internal override Expression Simplify()
         {
-            if (Arg is Exp)
+            if (Arg is Exp exp)
             {
-                return (Arg as Exp).Arg.Simplify();
+                return exp.Arg;
             }
             return base.Simplify();
         }

@@ -41,14 +41,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BinarySearch.cs" />
     <Compile Include="Complex.cs" />
+    <Compile Include="Expressions\Acos.cs" />
     <Compile Include="Expressions\Add.cs" />
+    <Compile Include="Expressions\BinarySearchExpression.cs" />
     <Compile Include="Expressions\Coalesce.cs" />
     <Compile Include="Expressions\Atan2.cs" />
     <Compile Include="Expressions\Atan.cs" />
     <Compile Include="Expressions\ComplexExpression.cs" />
     <Compile Include="Expressions\Constant.cs" />
     <Compile Include="Expressions\Ci.cs" />
+    <Compile Include="Expressions\FunctionByPoints.cs" />
+    <Compile Include="Expressions\GradientSearch.cs" />
+    <Compile Include="Expressions\IfPositive.cs" />
+    <Compile Include="Expressions\Max.cs" />
+    <Compile Include="Expressions\Min.cs" />
     <Compile Include="Expressions\Si.cs" />
     <Compile Include="Expressions\Log.cs" />
     <Compile Include="Expressions\Exp.cs" />
@@ -73,6 +81,7 @@
     <Compile Include="Expressions\Subtract.cs" />
     <Compile Include="Expressions\TwoArgsExpression.cs" />
     <Compile Include="Expressions\Variable.cs" />
+    <Compile Include="Expressions\VariableLimitation.cs" />
     <Compile Include="Math3D\Matrix.cs" />
     <Compile Include="Math3D\Point2D.cs" />
     <Compile Include="Math3D\Point3D.cs" />

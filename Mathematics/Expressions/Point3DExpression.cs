@@ -1,5 +1,6 @@
 ﻿using Mathematics.Math3D;
 using System;
+using System.Collections.Generic;
 
 namespace Mathematics.Expressions
 {
@@ -8,12 +9,60 @@ namespace Mathematics.Expressions
         public Expression X, Y, Z;
 
         public Expression SquareLength => X * X + Y * Y + Z * Z;
-        public Expression Length => new Hypot(X, Y, Z);
+        public Expression Length => Expression.Hypot(X, Y, Z);
 
-        public Point3DExpression Normal => this / Length;
+        public Point3DExpression Normal
+        {
+            get
+            {
+                var result = this / Length;
+                result.Alias = alias == null ? null : "Normal(" + alias + ")";
+                return result;
+            }
+        }
+
+        public Expression Pitch
+        {
+            get
+            {
+                var result = Expression.Acos(Normal.Y);
+                result.Alias = alias == null ? null : "Pitch(" + alias + ")";
+                return result;
+            }
+        }
+        public Expression Yaw
+        {
+            get
+            {
+                var result = Expression.Atan2(Z, X);
+                result.Alias = alias == null ? null : "Yaw(" + alias + ")";
+                return result;
+            }
+        }
+
+        private string alias;
+        public string Alias
+        {
+            get => alias;
+            set
+            {
+                alias = value;
+                if (value == null)
+                {
+                    X.Alias = Y.Alias = Z.Alias = null;
+                }
+                else
+                {
+                    X.Alias = value + "X";
+                    Y.Alias = value + "Y";
+                    Z.Alias = value + "Z";
+                }
+            }
+        }
 
         public Point3DExpression(Expression x, Expression y, Expression z)
         {
+            alias = null;
             X = x;
             Y = y;
             Z = z;
@@ -21,17 +70,23 @@ namespace Mathematics.Expressions
 
         public Point3DExpression(Point3D point)
         {
-            X = new Constant(point.X);
-            Y = new Constant(point.Y);
-            Z = new Constant(point.Z);
+            alias = null;
+            X = point.X;
+            Y = point.Y;
+            Z = point.Z;
+        }
+
+        public static Point3DExpression FromAngles(Expression pitch, Expression yaw)
+        {
+            return ((Point3DExpression)Point3D.YAxis).RotatePitch(pitch).RotateYaw(yaw);
         }
 
         public static Point3DExpression Coalesce(Expression conditionValue, Point3DExpression valueIfNil, Point3DExpression valueIfNotNil)
         {
             return new Point3DExpression(
-                new Coalesce(conditionValue, valueIfNil.X, valueIfNotNil.X),
-                new Coalesce(conditionValue, valueIfNil.Y, valueIfNotNil.Y),
-                new Coalesce(conditionValue, valueIfNil.Z, valueIfNotNil.Z)
+                Expression.Coalesce(conditionValue, valueIfNil.X, valueIfNotNil.X),
+                Expression.Coalesce(conditionValue, valueIfNil.Y, valueIfNotNil.Y),
+                Expression.Coalesce(conditionValue, valueIfNil.Z, valueIfNotNil.Z)
             );
         }
 
@@ -63,19 +118,41 @@ namespace Mathematics.Expressions
             );
         }
 
-        public Point3D Evaluate()
+        public Point3D Evaluate(int cacheGeneration = 0)
         {
-            return Each(v => v.Evaluate());
+            if (cacheGeneration == 0)
+            {
+                cacheGeneration = Expression.NextAutoIncrementId;
+            }
+            return new Point3D(X.Evaluate(cacheGeneration), Y.Evaluate(cacheGeneration), Z.Evaluate(cacheGeneration));
         }
 
         public Point3DExpression EvaluateVars(params Variable[] excludeVariables)
         {
-            return Each(v => v.EvaluateVars(excludeVariables));
+            return new Point3DExpression(
+                X.EvaluateVars(excludeVariables),
+                Y.EvaluateVars(excludeVariables),
+                Z.EvaluateVars(excludeVariables)
+            );
         }
 
-        public Point3DExpression Simplify()
+        public Point3DExpression SubstituteVariables(params KeyValuePair<Variable, Expression>[] substitutions)
         {
-            return Each(v => v.Simplify());
+            var cache = new Dictionary<int, Expression>();
+            return new Point3DExpression(
+                X.SubstituteVariables(cache, substitutions),
+                Y.SubstituteVariables(cache, substitutions),
+                Z.SubstituteVariables(cache, substitutions)
+            );
+        }
+
+        public Point3DExpression Derivate(Variable v)
+        {
+            return new Point3DExpression(
+                X.Derivate(v),
+                Y.Derivate(v),
+                Z.Derivate(v)
+            );
         }
 
         public struct ProjectionToNormalExpression
@@ -83,6 +160,18 @@ namespace Mathematics.Expressions
             public Point3DExpression Vertical, Horizontal;
 
             public Point3DExpression Full => Vertical + Horizontal;
+
+            public string Alias
+            {
+                set
+                {
+                    if (value != null)
+                    {
+                        Vertical.Alias = value + "_v";
+                        Horizontal.Alias = value + "_h";
+                    }
+                }
+            }
         }
 
         public Expression GetProjectionToNormalVectorLength(Point3DExpression normal)
@@ -96,7 +185,19 @@ namespace Mathematics.Expressions
             return new ProjectionToNormalExpression()
             {
                 Vertical = vertical,
-                Horizontal = this - vertical
+                Horizontal = this - vertical,
+                Alias = Alias
+            };
+        }
+
+        public ProjectionToNormalExpression ProjectToHorizontalSurface()
+        {
+            var c0 = Constant.Nil;
+            return new ProjectionToNormalExpression()
+            {
+                Vertical = new Point3DExpression(c0, Y, c0),
+                Horizontal = new Point3DExpression(X, c0, Z),
+                Alias = Alias
             };
         }
 
@@ -105,21 +206,49 @@ namespace Mathematics.Expressions
             var angleDirection = angle3D.Normal;
             var projection = ProjectToNormalVector(angleDirection);
             var angleLength = angle3D.Length;
-            return projection.Vertical + projection.Horizontal * new Cos(angleLength) + VectorMult(this, angleDirection) * new Sin(angleLength);
+            return projection.Vertical + projection.Horizontal * Expression.Cos(angleLength) + VectorMult(this, angleDirection) * Expression.Sin(angleLength);
+        }
+
+        // Rotate around OZ: from OY to OX
+        public Point3DExpression RotatePitch(Expression angle)
+        {
+            return RotateByAngle3D(new Point3DExpression(0, 0, angle));
+        }
+
+        // Rotate around OY: from OX to OZ
+        public Point3DExpression RotateYaw(Expression angle)
+        {
+            return RotateByAngle3D(new Point3DExpression(0, angle, 0));
+        }
+
+        // Rotate around OX: from OZ to OY
+        public Point3DExpression RotateRoll(Expression angle)
+        {
+            return RotateByAngle3D(new Point3DExpression(angle, 0, 0));
         }
 
         public static Point3DExpression VectorMult(Point3DExpression p1, Point3DExpression p2)
         {
-            return new Point3DExpression(
+            var result = new Point3DExpression(
                 p1.Y * p2.Z - p1.Z * p2.Y,
                 p1.Z * p2.X - p1.X * p2.Z,
                 p1.X * p2.Y - p1.Y * p2.X
             );
+            if (p1.alias != null && p2.alias != null)
+            {
+                result.Alias = "(" + p1.alias + " x " + p2.alias + ")";
+            }
+            return result;
         }
 
         public static Expression ScalarMult(Point3DExpression p1, Point3DExpression p2)
         {
-            return p1.X * p2.X + p1.Y * p2.Y + p1.Z * p2.Z;
+            var result = p1.X * p2.X + p1.Y * p2.Y + p1.Z * p2.Z;
+            if (p1.alias != null && p2.alias != null)
+            {
+                result.Alias = "dot(" + p1.alias + ", " + p2.alias + ")";
+            }
+            return result;
         }
 
         #region Operators
@@ -169,6 +298,11 @@ namespace Mathematics.Expressions
         public MatrixExpression ToVerticalMatrix()
         {
             return new MatrixExpression(new Expression[3, 1] { { X }, { Y }, { Z } });
+        }
+
+        public override string ToString()
+        {
+            return "(" + X + ";" + Y + ";" + Z + ")";
         }
     }
 }

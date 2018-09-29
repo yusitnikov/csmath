@@ -1,5 +1,3 @@
-using System;
-
 namespace Mathematics.Expressions
 {
     public abstract class TwoArgsFunction : TwoArgsExpression
@@ -16,9 +14,9 @@ namespace Mathematics.Expressions
             functionName = name;
         }
 
-        public override string ToString()
+        protected override string toString(int depth)
         {
-            return functionName + "(" + Arg1 + "; " + Arg2 + ")";
+            return functionName + "(" + Arg1.ToString(depth) + "; " + Arg2.ToString(depth) + ")";
         }
     }
 }

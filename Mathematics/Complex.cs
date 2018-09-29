@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 
 namespace Mathematics
 {
@@ -22,6 +21,16 @@ namespace Mathematics
         {
             Re = re;
             Im = im;
+        }
+
+        public double GetLengthDerivative(Complex thisDerivative)
+        {
+            return (Re * thisDerivative.Re + Im * thisDerivative.Im) / Length;
+        }
+
+        public double GetArgDerivative(Complex thisDerivative)
+        {
+            return (Re * thisDerivative.Im - Im * thisDerivative.Re) / SquareLength;
         }
 
         public static Complex Exp(Complex z)
@@ -64,6 +73,16 @@ namespace Mathematics
         public static Complex ExpIntOfImaginaryArg(double x1, double x2)
         {
             return ExpIntOfImaginaryArg(x2) - ExpIntOfImaginaryArg(x1);
+        }
+
+        public static Complex ExpIntOfImaginaryArgDerivative(double x, double dx)
+        {
+            return Exp(I * x) * (dx / x);
+        }
+
+        public static Complex ExpIntOfImaginaryArgDerivative(double x1, double x2, double dx1, double dx2)
+        {
+            return ExpIntOfImaginaryArgDerivative(x2, dx2) - ExpIntOfImaginaryArgDerivative(x1, dx1);
         }
 
         #region Operators

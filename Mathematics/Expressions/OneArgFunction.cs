@@ -1,10 +1,8 @@
-using System;
-
 namespace Mathematics.Expressions
 {
     public abstract class OneArgFunction : OneArgExpression
     {
-        private readonly string functionName;
+        protected readonly string functionName;
 
         internal override Priority Priority
         {
@@ -16,9 +14,9 @@ namespace Mathematics.Expressions
             functionName = name;
         }
 
-        public override string ToString()
+        protected override string toString(int depth)
         {
-            return functionName + "(" + Arg + ")";
+            return functionName + "(" + Arg.ToString(depth) + ")";
         }
     }
 }

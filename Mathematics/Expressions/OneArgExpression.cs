@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 
 namespace Mathematics.Expressions
@@ -15,14 +14,14 @@ namespace Mathematics.Expressions
 
         public OneArgExpression(Expression arg)
         {
-            Arg = arg.Simplify();
+            Arg = arg;
         }
 
         protected abstract double _evaluate(double val);
 
-        protected override double evaluate()
+        protected override double evaluate(int cacheGeneration)
         {
-            return _evaluate(Arg.Evaluate());
+            return _evaluate(Arg.Evaluate(cacheGeneration));
         }
 
         protected abstract Expression _derivate();
@@ -32,28 +31,14 @@ namespace Mathematics.Expressions
             return _derivate() * Arg.Derivate(variable);
         }
 
-        public override Expression Simplify()
-        {
-            if (Arg is Constant)
-            {
-                return new Constant(Evaluate());
-            }
-            return this;
-        }
-
-        protected virtual Expression newInstanceWithOtherArg(Expression arg)
-        {
-            return GetType().GetConstructor(new Type[] { typeof(Expression) }).Invoke(new object[] { arg }) as Expression;
-        }
-
         public override Expression EvaluateVars(params Variable[] excludeVariables)
         {
-            return newInstanceWithOtherArg(Arg.EvaluateVars(excludeVariables).Simplify()).Simplify();
+            return newInstanceWithOtherArgs(Arg.EvaluateVars(excludeVariables));
         }
 
-        public override Expression SubstituteVariables(params KeyValuePair<Variable, Expression>[] substitutions)
+        protected override Expression substituteVariables(Dictionary<int, Expression> cache, params KeyValuePair<Variable, Expression>[] substitutions)
         {
-            return newInstanceWithOtherArg(Arg.SubstituteVariables(substitutions));
+            return newInstanceWithOtherArgs(Arg.SubstituteVariables(cache, substitutions));
         }
     }
 }

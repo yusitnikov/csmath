@@ -2,7 +2,7 @@ namespace Mathematics.Expressions
 {
     public class Divide : TwoArgsExpression
     {
-        public Divide(Expression arg1, Expression arg2) : base(arg1, arg2)
+        internal Divide(Expression arg1, Expression arg2) : base(arg1, arg2)
         {
         }
 
@@ -11,14 +11,19 @@ namespace Mathematics.Expressions
             get { return Priority.Multiply; }
         }
 
+        protected override double evaluate(int cacheGeneration)
+        {
+            var value1 = Arg1.Evaluate(cacheGeneration);
+            return value1 == 0 ? 0 : _evaluate(value1, Arg2.Evaluate(cacheGeneration));
+        }
         protected override double _evaluate(double arg1, double arg2)
         {
             return arg2 == 0 ? 0 : arg1 / arg2;
         }
 
-        public override string ToString()
+        protected override string toString(int depth)
         {
-            return Arg1.ToString(Priority) + " / " + Arg2.ToString(Priority);
+            return Arg1.ToString(depth, Priority) + " / " + Arg2.ToString(depth, Priority);
         }
 
         protected override Expression derivate(Variable variable)
@@ -26,17 +31,13 @@ namespace Mathematics.Expressions
             return (Arg1.Derivate(variable) * Arg2 - Arg1 * Arg2.Derivate(variable)) / Arg2.Square();
         }
 
-        public override Expression Simplify()
+        internal override Expression Simplify()
         {
-            if (Arg2 is Constant c2)
-            {
-                return (Arg1 * new Constant(1 / c2.Value)).Simplify();
-            }
-            if (Arg1 is Constant c1 && c1.Value == 0)
+            if (Arg1 is Constant c1 && c1.Value == 0 || Arg2 is Constant c2 && c2.Value == 0)
             {
                 return Constant.Nil;
             }
-            return this;
+            return base.Simplify();
         }
     }
 }

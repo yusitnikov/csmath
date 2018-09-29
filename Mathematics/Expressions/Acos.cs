@@ -2,20 +2,20 @@ using System;
 
 namespace Mathematics.Expressions
 {
-    public class Sin : OneArgFunction
+    public class Acos : OneArgFunction
     {
-        internal Sin(Expression arg) : base("sin", arg)
+        internal Acos(Expression arg) : base("acos", arg)
         {
         }
 
         protected override double _evaluate(double value)
         {
-            return Math.Sin(value);
+            return Math.Acos(value);
         }
 
         protected override Expression _derivate()
         {
-            return Cos(Arg);
+            return Constant.MinusOne / Sqrt(Constant.One - Arg.Square());
         }
     }
 }

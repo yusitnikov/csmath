@@ -29,9 +29,9 @@ namespace Mathematics.Expressions
             Z.Value = point.Z;
         }
 
-        public Point3D Evaluate()
+        public Point3D Evaluate(int cacheGeneration = 0)
         {
-            return new Point3D(X.Evaluate(), Y.Evaluate(), Z.Evaluate());
+            return new Point3D(X.Evaluate(cacheGeneration), Y.Evaluate(cacheGeneration), Z.Evaluate(cacheGeneration));
         }
 
         public Point3DExpression EvaluateVars(params Variable[] excludeVariables)

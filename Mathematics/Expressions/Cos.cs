@@ -4,7 +4,7 @@ namespace Mathematics.Expressions
 {
     public class Cos : OneArgFunction
     {
-        public Cos(Expression arg) : base("cos", arg)
+        internal Cos(Expression arg) : base("cos", arg)
         {
         }
 
@@ -15,7 +15,7 @@ namespace Mathematics.Expressions
 
         protected override Expression _derivate()
         {
-            return -new Sin(Arg);
+            return -Sin(Arg);
         }
     }
 }
